@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import * as XLSX from "xlsx"
 import { supabase } from "./supabaseClient"
 
 export default function Payments() {
@@ -189,6 +190,23 @@ export default function Payments() {
     )
   })
 
+  const exportToExcel = () => {
+    const dataToExport = filteredPayments.map((p) => ({
+      Cliente: p.sessions?.clients?.name || "",
+      Data: p.sessions?.date ? new Date(p.sessions.date).toLocaleString() : "",
+      Valor: p.amount || "",
+      Estado: p.status || "",
+      Metodo_Pagamento: p.payment_method || "",
+      Tem_PDF: p.receipt_file_path ? "Sim" : "Não"
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    const workbook = XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pagamentos")
+    XLSX.writeFile(workbook, "pagamentos.xlsx")
+  }
+
   const inputStyle = {
     width: "100%",
     padding: "10px",
@@ -258,7 +276,7 @@ export default function Payments() {
         style={inputStyle}
       />
 
-      <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
         <button
           onClick={savePayment}
           style={{
@@ -288,6 +306,20 @@ export default function Payments() {
             Cancelar
           </button>
         )}
+
+        <button
+          onClick={exportToExcel}
+          style={{
+            padding: "12px 16px",
+            border: "none",
+            borderRadius: "10px",
+            background: "#059669",
+            color: "white",
+            cursor: "pointer"
+          }}
+        >
+          Exportar Excel
+        </button>
       </div>
 
       <h3>Pesquisar</h3>
