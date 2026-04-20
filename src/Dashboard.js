@@ -1,74 +1,62 @@
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "./supabaseClient"
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell
-} from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts"
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    totalSessions: 0,
-    totalRevenue: 0,
-    paid: 0,
-    unpaid: 0
-  })
+  const [sessions, setSessions] = useState([])
+  const [payments, setPayments] = useState([])
+  const [month, setMonth] = useState("")
 
-  const loadStats = async () => {
-    const { data: sessions } = await supabase.from("sessions").select("*")
-    const { data: payments } = await supabase.from("payments").select("*")
+  const loadData = async () => {
+    const { data: sessionsData } = await supabase.from("sessions").select("*")
+    const { data: paymentsData } = await supabase.from("payments").select("*")
 
-    const totalSessions = sessions.length
-
-    const totalRevenue = payments
-      .filter(p => p.status !== "nao_pago")
-      .reduce((sum, p) => sum + Number(p.amount), 0)
-
-    const paid = payments.filter(p => p.status !== "nao_pago").length
-    const unpaid = payments.filter(p => p.status === "nao_pago").length
-
-    setStats({
-      totalSessions,
-      totalRevenue,
-      paid,
-      unpaid
-    })
+    setSessions(sessionsData || [])
+    setPayments(paymentsData || [])
   }
 
   useEffect(() => {
-    loadStats()
+    loadData()
   }, [])
 
-  const barData = [
-    { name: "Sessões", valor: stats.totalSessions },
-    { name: "Receita (€)", valor: stats.totalRevenue }
-  ]
+  const filterByMonth = (date) => {
+    if (!month) return true
+    return date.startsWith(month)
+  }
 
-  const pieData = [
-    { name: "Pagos", value: stats.paid },
-    { name: "Não pagos", value: stats.unpaid }
+  const filteredSessions = sessions.filter(s => filterByMonth(s.date))
+  const filteredPayments = payments.filter(p => {
+    const session = sessions.find(s => s.id === p.session_id)
+    return session && filterByMonth(session.date)
+  })
+
+  const totalSessions = filteredSessions.length
+  const totalRevenue = filteredPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
+  const chartData = [
+    { name: "Sessões", value: totalSessions },
+    { name: "Receita (€)", value: totalRevenue }
   ]
 
   return (
-    <div style={{ padding: 20 }}>
+    <div>
       <h2>Dashboard</h2>
 
-      <h3>Total de Sessões: {stats.totalSessions}</h3>
-      <h3>Receita Total: {stats.totalRevenue} €</h3>
+      <label>Filtrar por mês:</label>
+      <br />
+      <input type="month" value={month} onChange={e => setMonth(e.target.value)} />
+
+      <h3>Total de Sessões: {totalSessions}</h3>
+      <h3>Receita Total: {totalRevenue} €</h3>
 
       <h3>Resumo</h3>
-      <BarChart width={300} height={200} data={barData}>
+
+      <BarChart width={400} height={300} data={chartData}>
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip />
-        <Bar dataKey="valor" />
+        <Bar dataKey="value" />
       </BarChart>
-
-      <h3>Pagamentos</h3>
-      <PieChart width={300} height={200}>
-        <Pie data={pieData} dataKey="value" label>
-          <Cell fill="#00C49F" />
-          <Cell fill="#FF8042" />
-        </Pie>
-      </PieChart>
     </div>
   )
 }
