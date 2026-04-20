@@ -2,16 +2,17 @@ import { useState, useEffect } from "react"
 import { supabase } from "./supabaseClient"
 
 export default function Sessions() {
-  const [clients, setClients] = useState([])
-  const [sessions, setSessions] = useState([])
-
-  const [form, setForm] = useState({
+  const emptyForm = {
     client_id: "",
     date: "",
-    duration: "",
     type: "presencial",
     status: "realizada"
-  })
+  }
+
+  const [clients, setClients] = useState([])
+  const [sessions, setSessions] = useState([])
+  const [form, setForm] = useState(emptyForm)
+  const [editingId, setEditingId] = useState(null)
 
   const loadClients = async () => {
     const { data, error } = await supabase
@@ -44,28 +45,70 @@ export default function Sessions() {
     loadSessions()
   }, [])
 
-  const addSession = async () => {
-    const { error } = await supabase.from("sessions").insert([{
-      client_id: form.client_id,
-      date: form.date,
-      duration: form.duration ? Number(form.duration) : null,
-      type: form.type,
-      status: form.status
-    }])
+  const resetForm = () => {
+    setForm(emptyForm)
+    setEditingId(null)
+  }
 
-    if (error) {
-      alert(error.message)
-    } else {
-      alert("Sessão criada")
-      setForm({
-        client_id: "",
-        date: "",
-        duration: "",
-        type: "presencial",
-        status: "realizada"
-      })
-      loadSessions()
+  const saveSession = async () => {
+    if (!form.client_id || !form.date) {
+      alert("Cliente e data são obrigatórios")
+      return
     }
+
+    if (editingId) {
+      const { error } = await supabase
+        .from("sessions")
+        .update({
+          client_id: form.client_id,
+          date: form.date,
+          type: form.type,
+          status: form.status
+        })
+        .eq("id", editingId)
+
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Sessão atualizada")
+        resetForm()
+        loadSessions()
+      }
+    } else {
+      const { error } = await supabase.from("sessions").insert([{
+        client_id: form.client_id,
+        date: form.date,
+        type: form.type,
+        status: form.status
+      }])
+
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Sessão criada")
+        resetForm()
+        loadSessions()
+      }
+    }
+  }
+
+  const editSession = (session) => {
+    setEditingId(session.id)
+    setForm({
+      client_id: session.client_id || "",
+      date: session.date ? session.date.slice(0, 16) : "",
+      type: session.type || "presencial",
+      status: session.status || "realizada"
+    })
+  }
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px",
+    marginBottom: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+    boxSizing: "border-box"
   }
 
   return (
@@ -74,63 +117,101 @@ export default function Sessions() {
 
       <select
         value={form.client_id}
-        onChange={e => setForm({ ...form, client_id: e.target.value })}
+        onChange={(e) => setForm({ ...form, client_id: e.target.value })}
+        style={inputStyle}
       >
         <option value="">Selecionar cliente</option>
-        {clients.map(c => (
+        {clients.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
           </option>
         ))}
       </select>
 
-      <br /><br />
-
       <input
         type="datetime-local"
         value={form.date}
-        onChange={e => setForm({ ...form, date: e.target.value })}
+        onChange={(e) => setForm({ ...form, date: e.target.value })}
+        style={inputStyle}
       />
-
-      <br /><br />
-
-      <input
-        type="number"
-        placeholder="Duração (minutos)"
-        value={form.duration}
-        onChange={e => setForm({ ...form, duration: e.target.value })}
-      />
-
-      <br /><br />
 
       <select
         value={form.type}
-        onChange={e => setForm({ ...form, type: e.target.value })}
+        onChange={(e) => setForm({ ...form, type: e.target.value })}
+        style={inputStyle}
       >
         <option value="presencial">Presencial</option>
         <option value="online">Online</option>
       </select>
 
-      <br /><br />
-
       <select
         value={form.status}
-        onChange={e => setForm({ ...form, status: e.target.value })}
+        onChange={(e) => setForm({ ...form, status: e.target.value })}
+        style={inputStyle}
       >
         <option value="realizada">Realizada</option>
         <option value="cancelada">Cancelada</option>
         <option value="faltou">Faltou</option>
       </select>
 
-      <br /><br />
+      <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+        <button
+          onClick={saveSession}
+          style={{
+            padding: "12px 16px",
+            border: "none",
+            borderRadius: "10px",
+            background: "#2563eb",
+            color: "white",
+            cursor: "pointer"
+          }}
+        >
+          {editingId ? "Guardar Alterações" : "Adicionar Sessão"}
+        </button>
 
-      <button onClick={addSession}>Adicionar Sessão</button>
+        {editingId && (
+          <button
+            onClick={resetForm}
+            style={{
+              padding: "12px 16px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#6b7280",
+              color: "white",
+              cursor: "pointer"
+            }}
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
 
       <h3>Lista</h3>
-      <ul>
-        {sessions.map(s => (
-          <li key={s.id}>
-            {s.clients?.name} - {new Date(s.date).toLocaleString()} - {s.duration || 0} min - {s.type} - {s.status}
+      <ul style={{ paddingLeft: "18px" }}>
+        {sessions.map((s) => (
+          <li key={s.id} style={{ marginBottom: "18px" }}>
+            <strong>{s.clients?.name}</strong>
+            <br />
+            Data: {new Date(s.date).toLocaleString()}
+            <br />
+            Tipo: {s.type || "-"}
+            <br />
+            Estado: {s.status || "-"}
+            <br />
+            <button
+              onClick={() => editSession(s)}
+              style={{
+                marginTop: "8px",
+                padding: "8px 12px",
+                border: "none",
+                borderRadius: "8px",
+                background: "#f59e0b",
+                color: "white",
+                cursor: "pointer"
+              }}
+            >
+              Editar
+            </button>
           </li>
         ))}
       </ul>
