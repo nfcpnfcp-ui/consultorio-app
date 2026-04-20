@@ -2,16 +2,18 @@ import { useState, useEffect } from "react"
 import { supabase } from "./supabaseClient"
 
 export default function Payments() {
-  const [sessions, setSessions] = useState([])
-  const [payments, setPayments] = useState([])
-  const [file, setFile] = useState(null)
-
-  const [form, setForm] = useState({
+  const emptyForm = {
     session_id: "",
     amount: "",
     status: "nao_pago",
     payment_method: "Numerário"
-  })
+  }
+
+  const [sessions, setSessions] = useState([])
+  const [payments, setPayments] = useState([])
+  const [file, setFile] = useState(null)
+  const [form, setForm] = useState(emptyForm)
+  const [editingId, setEditingId] = useState(null)
 
   const loadSessions = async () => {
     const { data, error } = await supabase
@@ -44,6 +46,12 @@ export default function Payments() {
     loadPayments()
   }, [])
 
+  const resetForm = () => {
+    setForm(emptyForm)
+    setFile(null)
+    setEditingId(null)
+  }
+
   const uploadReceipt = async () => {
     if (!file) return null
 
@@ -63,7 +71,12 @@ export default function Payments() {
     return filePath
   }
 
-  const addPayment = async () => {
+  const savePayment = async () => {
+    if (!form.session_id || !form.amount) {
+      alert("Sessão e valor são obrigatórios")
+      return
+    }
+
     let receiptFilePath = null
 
     if (file) {
@@ -71,24 +84,58 @@ export default function Payments() {
       if (!receiptFilePath) return
     }
 
-    const { error } = await supabase.from("payments").insert([{
-      ...form,
-      receipt_file_path: receiptFilePath
-    }])
+    if (editingId) {
+      const updateData = {
+        session_id: form.session_id,
+        amount: Number(form.amount),
+        status: form.status,
+        payment_method: form.payment_method
+      }
 
-    if (error) {
-      alert(error.message)
+      if (receiptFilePath) {
+        updateData.receipt_file_path = receiptFilePath
+      }
+
+      const { error } = await supabase
+        .from("payments")
+        .update(updateData)
+        .eq("id", editingId)
+
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Pagamento atualizado")
+        resetForm()
+        loadPayments()
+      }
     } else {
-      alert("Pagamento registado")
-      setForm({
-        session_id: "",
-        amount: "",
-        status: "nao_pago",
-        payment_method: "Numerário"
-      })
-      setFile(null)
-      loadPayments()
+      const { error } = await supabase.from("payments").insert([{
+        session_id: form.session_id,
+        amount: Number(form.amount),
+        status: form.status,
+        payment_method: form.payment_method,
+        receipt_file_path: receiptFilePath
+      }])
+
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Pagamento registado")
+        resetForm()
+        loadPayments()
+      }
     }
+  }
+
+  const editPayment = (payment) => {
+    setEditingId(payment.id)
+    setFile(null)
+    setForm({
+      session_id: payment.session_id || "",
+      amount: payment.amount || "",
+      status: payment.status || "nao_pago",
+      payment_method: payment.payment_method || "Numerário"
+    })
   }
 
   const openReceipt = async (path) => {
@@ -105,76 +152,142 @@ export default function Payments() {
     }
   }
 
+  const inputStyle = {
+    width: "100%",
+    padding: "10px",
+    marginBottom: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+    boxSizing: "border-box"
+  }
+
   return (
     <div>
       <h2>Pagamentos</h2>
 
       <select
         value={form.session_id}
-        onChange={e => setForm({ ...form, session_id: e.target.value })}
+        onChange={(e) => setForm({ ...form, session_id: e.target.value })}
+        style={inputStyle}
       >
         <option value="">Selecionar sessão</option>
-        {sessions.map(s => (
+        {sessions.map((s) => (
           <option key={s.id} value={s.id}>
             {s.clients?.name} - {new Date(s.date).toLocaleString()}
           </option>
         ))}
       </select>
 
-      <br /><br />
-
       <input
         type="number"
         placeholder="Valor"
         value={form.amount}
-        onChange={e => setForm({ ...form, amount: e.target.value })}
+        onChange={(e) => setForm({ ...form, amount: e.target.value })}
+        style={inputStyle}
       />
-
-      <br /><br />
 
       <select
         value={form.status}
-        onChange={e => setForm({ ...form, status: e.target.value })}
+        onChange={(e) => setForm({ ...form, status: e.target.value })}
+        style={inputStyle}
       >
         <option value="pago_com_recibo">Pago com recibo</option>
         <option value="pago_sem_recibo">Pago sem recibo</option>
         <option value="nao_pago">Não pago</option>
       </select>
 
-      <br /><br />
-
       <select
         value={form.payment_method}
-        onChange={e => setForm({ ...form, payment_method: e.target.value })}
+        onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+        style={inputStyle}
       >
         <option value="Numerário">Numerário</option>
         <option value="MBWAY">MBWAY</option>
         <option value="Transferência">Transferência</option>
       </select>
 
-      <br /><br />
-
       <input
         type="file"
         accept="application/pdf"
-        onChange={e => setFile(e.target.files[0])}
+        onChange={(e) => setFile(e.target.files[0])}
+        style={inputStyle}
       />
 
-      <br /><br />
+      <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+        <button
+          onClick={savePayment}
+          style={{
+            padding: "12px 16px",
+            border: "none",
+            borderRadius: "10px",
+            background: "#2563eb",
+            color: "white",
+            cursor: "pointer"
+          }}
+        >
+          {editingId ? "Guardar Alterações" : "Registar Pagamento"}
+        </button>
 
-      <button onClick={addPayment}>Registar Pagamento</button>
+        {editingId && (
+          <button
+            onClick={resetForm}
+            style={{
+              padding: "12px 16px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#6b7280",
+              color: "white",
+              cursor: "pointer"
+            }}
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
 
       <h3>Lista</h3>
-      <ul>
-        {payments.map(p => (
-          <li key={p.id}>
-            {p.sessions?.clients?.name} - {p.amount}€ - {p.status} - {p.payment_method}
-            {" "}
-            {p.receipt_file_path && (
-              <button onClick={() => openReceipt(p.receipt_file_path)}>
-                Ver PDF
+      <ul style={{ paddingLeft: "18px" }}>
+        {payments.map((p) => (
+          <li key={p.id} style={{ marginBottom: "18px" }}>
+            <strong>{p.sessions?.clients?.name}</strong>
+            <br />
+            Valor: {p.amount} €
+            <br />
+            Estado: {p.status || "-"}
+            <br />
+            Método: {p.payment_method || "-"}
+            <br />
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px", flexWrap: "wrap" }}>
+              <button
+                onClick={() => editPayment(p)}
+                style={{
+                  padding: "8px 12px",
+                  border: "none",
+                  borderRadius: "8px",
+                  background: "#f59e0b",
+                  color: "white",
+                  cursor: "pointer"
+                }}
+              >
+                Editar
               </button>
-            )}
+
+              {p.receipt_file_path && (
+                <button
+                  onClick={() => openReceipt(p.receipt_file_path)}
+                  style={{
+                    padding: "8px 12px",
+                    border: "none",
+                    borderRadius: "8px",
+                    background: "#10b981",
+                    color: "white",
+                    cursor: "pointer"
+                  }}
+                >
+                  Ver PDF
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
