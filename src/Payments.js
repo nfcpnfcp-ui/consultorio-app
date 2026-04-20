@@ -4,6 +4,7 @@ import { supabase } from "./supabaseClient"
 export default function Payments() {
   const [sessions, setSessions] = useState([])
   const [payments, setPayments] = useState([])
+  const [file, setFile] = useState(null)
 
   const [form, setForm] = useState({
     session_id: "",
@@ -43,8 +44,37 @@ export default function Payments() {
     loadPayments()
   }, [])
 
+  const uploadReceipt = async () => {
+    if (!file) return null
+
+    const fileExt = file.name.split(".").pop()
+    const fileName = `${Date.now()}.${fileExt}`
+    const filePath = `receipts/${fileName}`
+
+    const { error } = await supabase.storage
+      .from("receipts")
+      .upload(filePath, file)
+
+    if (error) {
+      alert("Erro no upload do PDF: " + error.message)
+      return null
+    }
+
+    return filePath
+  }
+
   const addPayment = async () => {
-    const { error } = await supabase.from("payments").insert([form])
+    let receiptFilePath = null
+
+    if (file) {
+      receiptFilePath = await uploadReceipt()
+      if (!receiptFilePath) return
+    }
+
+    const { error } = await supabase.from("payments").insert([{
+      ...form,
+      receipt_file_path: receiptFilePath
+    }])
 
     if (error) {
       alert(error.message)
@@ -56,7 +86,22 @@ export default function Payments() {
         status: "nao_pago",
         payment_method: "Numerário"
       })
+      setFile(null)
       loadPayments()
+    }
+  }
+
+  const openReceipt = async (path) => {
+    if (!path) return
+
+    const { data, error } = await supabase.storage
+      .from("receipts")
+      .createSignedUrl(path, 60)
+
+    if (error) {
+      alert("Erro ao abrir PDF: " + error.message)
+    } else {
+      window.open(data.signedUrl, "_blank")
     }
   }
 
@@ -109,13 +154,27 @@ export default function Payments() {
 
       <br /><br />
 
+      <input
+        type="file"
+        accept="application/pdf"
+        onChange={e => setFile(e.target.files[0])}
+      />
+
+      <br /><br />
+
       <button onClick={addPayment}>Registar Pagamento</button>
 
       <h3>Lista</h3>
       <ul>
         {payments.map(p => (
           <li key={p.id}>
-            {p.sessions?.clients?.name} - {p.amount}€ - {p.status} - {p.payment_method || "Sem método"}
+            {p.sessions?.clients?.name} - {p.amount}€ - {p.status} - {p.payment_method}
+            {" "}
+            {p.receipt_file_path && (
+              <button onClick={() => openReceipt(p.receipt_file_path)}>
+                Ver PDF
+              </button>
+            )}
           </li>
         ))}
       </ul>
