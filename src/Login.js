@@ -22,27 +22,79 @@ function Login({ setIsLoggedIn }) {
   }
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Login</h2>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f3f4f6",
+        fontFamily: "Arial, sans-serif"
+      }}
+    >
+      <div
+        style={{
+          width: "360px",
+          background: "white",
+          padding: "32px",
+          borderRadius: "16px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
+        }}
+      >
+        <h2 style={{ marginTop: 0, marginBottom: "24px" }}>Login</h2>
 
-      <input
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <br /><br />
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "12px",
+            marginBottom: "16px",
+            borderRadius: "10px",
+            border: "1px solid #d1d5db",
+            boxSizing: "border-box"
+          }}
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <br /><br />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "12px",
+            marginBottom: "16px",
+            borderRadius: "10px",
+            border: "1px solid #d1d5db",
+            boxSizing: "border-box"
+          }}
+        />
 
-      <button onClick={handleLogin}>Entrar</button>
+        <button
+          onClick={handleLogin}
+          style={{
+            width: "100%",
+            padding: "12px",
+            border: "none",
+            borderRadius: "10px",
+            background: "#2563eb",
+            color: "white",
+            cursor: "pointer",
+            fontSize: "16px",
+            fontWeight: "600"
+          }}
+        >
+          Entrar
+        </button>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && (
+          <p style={{ color: "#dc2626", marginTop: "16px" }}>
+            {error}
+          </p>
+        )}
+      </div>
     </div>
   )
 }

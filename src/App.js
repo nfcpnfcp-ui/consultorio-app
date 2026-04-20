@@ -14,31 +14,108 @@ function App() {
     return <Login setIsLoggedIn={setIsLoggedIn} />
   }
 
+  const menuButtonStyle = (active) => ({
+    display: "block",
+    width: "100%",
+    padding: "12px 16px",
+    marginBottom: "10px",
+    border: "none",
+    borderRadius: "10px",
+    background: active ? "#2563eb" : "#f3f4f6",
+    color: active ? "white" : "#111827",
+    textAlign: "left",
+    cursor: "pointer",
+    fontSize: "16px",
+    fontWeight: "500"
+  })
+
   return (
-    <div>
-      <div style={{ padding: 20, background: "#eee" }}>
-        <button onClick={() => setPage("dashboard")}>Dashboard</button>
-        <button onClick={() => setPage("clients")}>Clientes</button>
-        <button onClick={() => setPage("sessions")}>Sessões</button>
-        <button onClick={() => setPage("payments")}>Pagamentos</button>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        fontFamily: "Arial, sans-serif",
+        background: "#f9fafb"
+      }}
+    >
+      <aside
+        style={{
+          width: "260px",
+          background: "white",
+          borderRight: "1px solid #e5e7eb",
+          padding: "24px",
+          boxSizing: "border-box"
+        }}
+      >
+        <h2 style={{ marginTop: 0, marginBottom: "30px" }}>
+          Consultório
+        </h2>
 
         <button
-          style={{ float: "right" }}
-          onClick={async () => {
-            await supabase.auth.signOut()
-            setIsLoggedIn(false)
+          style={menuButtonStyle(page === "dashboard")}
+          onClick={() => setPage("dashboard")}
+        >
+          Dashboard
+        </button>
+
+        <button
+          style={menuButtonStyle(page === "clients")}
+          onClick={() => setPage("clients")}
+        >
+          Clientes
+        </button>
+
+        <button
+          style={menuButtonStyle(page === "sessions")}
+          onClick={() => setPage("sessions")}
+        >
+          Sessões
+        </button>
+
+        <button
+          style={menuButtonStyle(page === "payments")}
+          onClick={() => setPage("payments")}
+        >
+          Pagamentos
+        </button>
+
+        <div style={{ marginTop: "30px" }}>
+          <button
+            style={{
+              width: "100%",
+              padding: "12px 16px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#dc2626",
+              color: "white",
+              cursor: "pointer",
+              fontSize: "15px"
+            }}
+            onClick={async () => {
+              await supabase.auth.signOut()
+              setIsLoggedIn(false)
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <main style={{ flex: 1, padding: "32px" }}>
+        <div
+          style={{
+            background: "white",
+            borderRadius: "16px",
+            padding: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
           }}
         >
-          Logout
-        </button>
-      </div>
-
-      <div style={{ padding: 20 }}>
-        {page === "dashboard" && <Dashboard />}
-        {page === "clients" && <Clients />}
-        {page === "sessions" && <Sessions />}
-        {page === "payments" && <Payments />}
-      </div>
+          {page === "dashboard" && <Dashboard />}
+          {page === "clients" && <Clients />}
+          {page === "sessions" && <Sessions />}
+          {page === "payments" && <Payments />}
+        </div>
+      </main>
     </div>
   )
 }
