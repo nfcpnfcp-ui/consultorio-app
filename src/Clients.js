@@ -96,6 +96,23 @@ export default function Clients() {
     })
   }
 
+  const deleteClient = async (id) => {
+    const confirmDelete = window.confirm("Tens a certeza que queres eliminar este cliente?")
+    if (!confirmDelete) return
+
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      alert(error.message)
+    } else {
+      alert("Cliente eliminado")
+      loadClients()
+    }
+  }
+
   const filteredClients = clients.filter((c) => {
     const text = search.toLowerCase()
 
@@ -114,6 +131,14 @@ export default function Clients() {
     borderRadius: "10px",
     border: "1px solid #ccc",
     boxSizing: "border-box"
+  }
+
+  const buttonStyle = {
+    padding: "8px 12px",
+    border: "none",
+    borderRadius: "8px",
+    color: "white",
+    cursor: "pointer"
   }
 
   return (
@@ -217,20 +242,21 @@ export default function Clients() {
             <br />
             Morada: {c.address || "Sem morada"}
             <br />
-            <button
-              onClick={() => editClient(c)}
-              style={{
-                marginTop: "8px",
-                padding: "8px 12px",
-                border: "none",
-                borderRadius: "8px",
-                background: "#f59e0b",
-                color: "white",
-                cursor: "pointer"
-              }}
-            >
-              Editar
-            </button>
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px", flexWrap: "wrap" }}>
+              <button
+                onClick={() => editClient(c)}
+                style={{ ...buttonStyle, background: "#f59e0b" }}
+              >
+                Editar
+              </button>
+
+              <button
+                onClick={() => deleteClient(c.id)}
+                style={{ ...buttonStyle, background: "#dc2626" }}
+              >
+                Eliminar
+              </button>
+            </div>
           </li>
         ))}
       </ul>

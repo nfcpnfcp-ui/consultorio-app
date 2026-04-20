@@ -138,6 +138,23 @@ export default function Payments() {
     })
   }
 
+  const deletePayment = async (id) => {
+    const confirmDelete = window.confirm("Tens a certeza que queres eliminar este pagamento?")
+    if (!confirmDelete) return
+
+    const { error } = await supabase
+      .from("payments")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      alert(error.message)
+    } else {
+      alert("Pagamento eliminado")
+      loadPayments()
+    }
+  }
+
   const openReceipt = async (path) => {
     if (!path) return
 
@@ -159,6 +176,14 @@ export default function Payments() {
     borderRadius: "10px",
     border: "1px solid #ccc",
     boxSizing: "border-box"
+  }
+
+  const buttonStyle = {
+    padding: "8px 12px",
+    border: "none",
+    borderRadius: "8px",
+    color: "white",
+    cursor: "pointer"
   }
 
   return (
@@ -260,14 +285,7 @@ export default function Payments() {
             <div style={{ display: "flex", gap: "10px", marginTop: "8px", flexWrap: "wrap" }}>
               <button
                 onClick={() => editPayment(p)}
-                style={{
-                  padding: "8px 12px",
-                  border: "none",
-                  borderRadius: "8px",
-                  background: "#f59e0b",
-                  color: "white",
-                  cursor: "pointer"
-                }}
+                style={{ ...buttonStyle, background: "#f59e0b" }}
               >
                 Editar
               </button>
@@ -275,18 +293,18 @@ export default function Payments() {
               {p.receipt_file_path && (
                 <button
                   onClick={() => openReceipt(p.receipt_file_path)}
-                  style={{
-                    padding: "8px 12px",
-                    border: "none",
-                    borderRadius: "8px",
-                    background: "#10b981",
-                    color: "white",
-                    cursor: "pointer"
-                  }}
+                  style={{ ...buttonStyle, background: "#10b981" }}
                 >
                   Ver PDF
                 </button>
               )}
+
+              <button
+                onClick={() => deletePayment(p.id)}
+                style={{ ...buttonStyle, background: "#dc2626" }}
+              >
+                Eliminar
+              </button>
             </div>
           </li>
         ))}

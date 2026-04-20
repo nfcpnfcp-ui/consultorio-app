@@ -102,6 +102,23 @@ export default function Sessions() {
     })
   }
 
+  const deleteSession = async (id) => {
+    const confirmDelete = window.confirm("Tens a certeza que queres eliminar esta sessão?")
+    if (!confirmDelete) return
+
+    const { error } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      alert(error.message)
+    } else {
+      alert("Sessão eliminada")
+      loadSessions()
+    }
+  }
+
   const inputStyle = {
     width: "100%",
     padding: "10px",
@@ -109,6 +126,14 @@ export default function Sessions() {
     borderRadius: "10px",
     border: "1px solid #ccc",
     boxSizing: "border-box"
+  }
+
+  const buttonStyle = {
+    padding: "8px 12px",
+    border: "none",
+    borderRadius: "8px",
+    color: "white",
+    cursor: "pointer"
   }
 
   return (
@@ -198,20 +223,21 @@ export default function Sessions() {
             <br />
             Estado: {s.status || "-"}
             <br />
-            <button
-              onClick={() => editSession(s)}
-              style={{
-                marginTop: "8px",
-                padding: "8px 12px",
-                border: "none",
-                borderRadius: "8px",
-                background: "#f59e0b",
-                color: "white",
-                cursor: "pointer"
-              }}
-            >
-              Editar
-            </button>
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px", flexWrap: "wrap" }}>
+              <button
+                onClick={() => editSession(s)}
+                style={{ ...buttonStyle, background: "#f59e0b" }}
+              >
+                Editar
+              </button>
+
+              <button
+                onClick={() => deleteSession(s.id)}
+                style={{ ...buttonStyle, background: "#dc2626" }}
+              >
+                Eliminar
+              </button>
+            </div>
           </li>
         ))}
       </ul>
