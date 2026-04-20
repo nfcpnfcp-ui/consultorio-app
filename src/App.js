@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "./supabaseClient"
 import Dashboard from "./Dashboard"
 import Clients from "./Clients"
@@ -8,10 +8,32 @@ import Login from "./Login"
 
 function App() {
   const [page, setPage] = useState("dashboard")
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [session, setSession] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  if (!isLoggedIn) {
-    return <Login setIsLoggedIn={setIsLoggedIn} />
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setLoading(false)
+    })
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  if (loading) {
+    return <div style={{ padding: "40px" }}>A carregar...</div>
+  }
+
+  if (!session) {
+    return <Login setIsLoggedIn={() => {}} />
   }
 
   const menuButtonStyle = (active) => ({
@@ -93,7 +115,6 @@ function App() {
             }}
             onClick={async () => {
               await supabase.auth.signOut()
-              setIsLoggedIn(false)
             }}
           >
             Logout

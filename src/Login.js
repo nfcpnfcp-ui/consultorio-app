@@ -1,13 +1,15 @@
 import { useState } from "react"
 import { supabase } from "./supabaseClient"
 
-function Login({ setIsLoggedIn }) {
+function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const handleLogin = async () => {
     setError("")
+    setLoading(true)
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -16,9 +18,9 @@ function Login({ setIsLoggedIn }) {
 
     if (error) {
       setError(error.message)
-    } else {
-      setIsLoggedIn(true)
     }
+
+    setLoading(false)
   }
 
   return (
@@ -74,6 +76,7 @@ function Login({ setIsLoggedIn }) {
 
         <button
           onClick={handleLogin}
+          disabled={loading}
           style={{
             width: "100%",
             padding: "12px",
@@ -83,10 +86,11 @@ function Login({ setIsLoggedIn }) {
             color: "white",
             cursor: "pointer",
             fontSize: "16px",
-            fontWeight: "600"
+            fontWeight: "600",
+            opacity: loading ? 0.7 : 1
           }}
         >
-          Entrar
+          {loading ? "A entrar..." : "Entrar"}
         </button>
 
         {error && (
