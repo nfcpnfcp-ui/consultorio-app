@@ -28,7 +28,7 @@ export default function Dashboard() {
   const loadData = async () => {
     const { data: sessionsData, error: sessionsError } = await supabase
       .from("sessions")
-      .select("*")
+      .select("*, clients(name)")
 
     const { data: paymentsData, error: paymentsError } = await supabase
       .from("payments")
@@ -50,8 +50,8 @@ export default function Dashboard() {
 
   const filterByMonth = (dateValue) => {
     if (!month) return true
-    const iso = new Date(dateValue).toISOString().slice(0, 7)
-    return iso === month
+    const isoMonth = new Date(dateValue).toISOString().slice(0, 7)
+    return isoMonth === month
   }
 
   const filteredSessions = useMemo(() => {
@@ -71,9 +71,11 @@ export default function Dashboard() {
   const paidWithReceipt = filteredPayments.filter(
     (p) => p.status === "pago_com_recibo"
   )
+
   const paidWithoutReceipt = filteredPayments.filter(
     (p) => p.status === "pago_sem_recibo"
   )
+
   const unpaidPayments = filteredPayments.filter(
     (p) => p.status === "nao_pago"
   )
@@ -82,16 +84,23 @@ export default function Dashboard() {
     (sum, p) => sum + Number(p.amount || 0),
     0
   )
+
   const totalPaidWithoutReceipt = paidWithoutReceipt.reduce(
     (sum, p) => sum + Number(p.amount || 0),
     0
   )
+
   const totalUnpaid = unpaidPayments.reduce(
     (sum, p) => sum + Number(p.amount || 0),
     0
   )
 
   const totalRevenue = totalPaidWithReceipt + totalPaidWithoutReceipt
+
+  const averagePerPaidSession =
+    paidWithReceipt.length + paidWithoutReceipt.length > 0
+      ? totalRevenue / (paidWithReceipt.length + paidWithoutReceipt.length)
+      : 0
 
   const summaryData = [
     { name: "Pago com recibo", value: totalPaidWithReceipt },
@@ -109,6 +118,36 @@ export default function Dashboard() {
     { name: "Sem recibo", value: paidWithoutReceipt.length },
     { name: "Não pago", value: unpaidPayments.length }
   ]
+
+  const methodTotalsMap = {}
+  filteredPayments.forEach((p) => {
+    const method = p.payment_method || "Sem método"
+    if (!methodTotalsMap[method]) {
+      methodTotalsMap[method] = 0
+    }
+    methodTotalsMap[method] += Number(p.amount || 0)
+  })
+
+  const paymentMethodData = Object.entries(methodTotalsMap).map(
+    ([name, value]) => ({
+      name,
+      value
+    })
+  )
+
+  const clientTotalsMap = {}
+  filteredPayments.forEach((p) => {
+    const clientName = p.sessions?.clients?.name || "Sem cliente"
+    if (!clientTotalsMap[clientName]) {
+      clientTotalsMap[clientName] = 0
+    }
+    clientTotalsMap[clientName] += Number(p.amount || 0)
+  })
+
+  const clientRevenueData = Object.entries(clientTotalsMap)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
 
   const monthlyRevenueMap = {}
 
@@ -158,6 +197,11 @@ export default function Dashboard() {
     padding: "20px",
     boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
     minHeight: "360px"
+  }
+
+  const titleStyle = {
+    marginTop: 0,
+    marginBottom: "14px"
   }
 
   return (
@@ -225,10 +269,19 @@ export default function Dashboard() {
 
         <div style={cardStyle}>
           <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
-            Não pago
+            Em dívida
           </div>
           <div style={{ fontSize: "30px", fontWeight: "700" }}>
             {totalUnpaid.toFixed(2)} €
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
+            Média por pagamento
+          </div>
+          <div style={{ fontSize: "30px", fontWeight: "700" }}>
+            {averagePerPaidSession.toFixed(2)} €
           </div>
         </div>
       </div>
@@ -242,7 +295,7 @@ export default function Dashboard() {
         }}
       >
         <div style={chartCardStyle}>
-          <h3 style={{ marginTop: 0 }}>Totais por categoria</h3>
+          <h3 style={titleStyle}>Totais por categoria</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={summaryData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -256,7 +309,7 @@ export default function Dashboard() {
         </div>
 
         <div style={chartCardStyle}>
-          <h3 style={{ marginTop: 0 }}>Pagamentos com e sem recibo</h3>
+          <h3 style={titleStyle}>Pagamentos com e sem recibo</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
@@ -285,7 +338,7 @@ export default function Dashboard() {
         }}
       >
         <div style={chartCardStyle}>
-          <h3 style={{ marginTop: 0 }}>Quantidade de pagamentos por estado</h3>
+          <h3 style={titleStyle}>Quantidade de pagamentos por estado</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={paymentStatusCountData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -299,7 +352,44 @@ export default function Dashboard() {
         </div>
 
         <div style={chartCardStyle}>
-          <h3 style={{ marginTop: 0 }}>Evolução mensal da receita</h3>
+          <h3 style={titleStyle}>Totais por método de pagamento</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={paymentMethodData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="value" name="Valor (€)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: "16px",
+          marginBottom: "24px"
+        }}
+      >
+        <div style={chartCardStyle}>
+          <h3 style={titleStyle}>Top clientes por receita</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={clientRevenueData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="value" name="Valor (€)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div style={chartCardStyle}>
+          <h3 style={titleStyle}>Evolução mensal da receita</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={monthlyRevenueData}>
               <CartesianGrid strokeDasharray="3 3" />
