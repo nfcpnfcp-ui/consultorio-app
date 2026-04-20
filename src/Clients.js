@@ -2,19 +2,26 @@ import { useState, useEffect } from "react"
 import { supabase } from "./supabaseClient"
 
 export default function Clients() {
-  const [clients, setClients] = useState([])
-
-  const [form, setForm] = useState({
+  const emptyForm = {
     name: "",
     phone: "",
     email: "",
     birth_date: "",
     nif: "",
     address: ""
-  })
+  }
+
+  const [clients, setClients] = useState([])
+  const [search, setSearch] = useState("")
+  const [form, setForm] = useState(emptyForm)
+  const [editingId, setEditingId] = useState(null)
 
   const loadClients = async () => {
-    const { data, error } = await supabase.from("clients").select("*").order("created_at", { ascending: false })
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .order("created_at", { ascending: false })
+
     if (error) {
       alert(error.message)
     } else {
@@ -26,23 +33,87 @@ export default function Clients() {
     loadClients()
   }, [])
 
-  const addClient = async () => {
-    const { error } = await supabase.from("clients").insert([form])
+  const resetForm = () => {
+    setForm(emptyForm)
+    setEditingId(null)
+  }
 
-    if (error) {
-      alert(error.message)
-    } else {
-      alert("Cliente criado")
-      setForm({
-        name: "",
-        phone: "",
-        email: "",
-        birth_date: "",
-        nif: "",
-        address: ""
-      })
-      loadClients()
+  const saveClient = async () => {
+    if (!form.name.trim()) {
+      alert("O nome é obrigatório")
+      return
     }
+
+    if (editingId) {
+      const { error } = await supabase
+        .from("clients")
+        .update({
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          birth_date: form.birth_date || null,
+          nif: form.nif,
+          address: form.address
+        })
+        .eq("id", editingId)
+
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Cliente atualizado")
+        resetForm()
+        loadClients()
+      }
+    } else {
+      const { error } = await supabase.from("clients").insert([{
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        birth_date: form.birth_date || null,
+        nif: form.nif,
+        address: form.address
+      }])
+
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Cliente criado")
+        resetForm()
+        loadClients()
+      }
+    }
+  }
+
+  const editClient = (client) => {
+    setEditingId(client.id)
+    setForm({
+      name: client.name || "",
+      phone: client.phone || "",
+      email: client.email || "",
+      birth_date: client.birth_date || "",
+      nif: client.nif || "",
+      address: client.address || ""
+    })
+  }
+
+  const filteredClients = clients.filter((c) => {
+    const text = search.toLowerCase()
+
+    return (
+      c.name?.toLowerCase().includes(text) ||
+      c.nif?.toLowerCase().includes(text) ||
+      c.phone?.toLowerCase().includes(text) ||
+      c.email?.toLowerCase().includes(text)
+    )
+  })
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px",
+    marginBottom: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+    boxSizing: "border-box"
   }
 
   return (
@@ -52,52 +123,114 @@ export default function Clients() {
       <input
         placeholder="Nome"
         value={form.name}
-        onChange={e => setForm({ ...form, name: e.target.value })}
+        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        style={inputStyle}
       />
-      <br /><br />
 
       <input
         placeholder="Telefone"
         value={form.phone}
-        onChange={e => setForm({ ...form, phone: e.target.value })}
+        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+        style={inputStyle}
       />
-      <br /><br />
 
       <input
         placeholder="Email"
         value={form.email}
-        onChange={e => setForm({ ...form, email: e.target.value })}
+        onChange={(e) => setForm({ ...form, email: e.target.value })}
+        style={inputStyle}
       />
-      <br /><br />
 
       <input
         type="date"
         value={form.birth_date}
-        onChange={e => setForm({ ...form, birth_date: e.target.value })}
+        onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+        style={inputStyle}
       />
-      <br /><br />
 
       <input
         placeholder="NIF"
         value={form.nif}
-        onChange={e => setForm({ ...form, nif: e.target.value })}
+        onChange={(e) => setForm({ ...form, nif: e.target.value })}
+        style={inputStyle}
       />
-      <br /><br />
 
       <input
         placeholder="Morada"
         value={form.address}
-        onChange={e => setForm({ ...form, address: e.target.value })}
+        onChange={(e) => setForm({ ...form, address: e.target.value })}
+        style={inputStyle}
       />
-      <br /><br />
 
-      <button onClick={addClient}>Adicionar Cliente</button>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+        <button
+          onClick={saveClient}
+          style={{
+            padding: "12px 16px",
+            border: "none",
+            borderRadius: "10px",
+            background: "#2563eb",
+            color: "white",
+            cursor: "pointer"
+          }}
+        >
+          {editingId ? "Guardar Alterações" : "Adicionar Cliente"}
+        </button>
+
+        {editingId && (
+          <button
+            onClick={resetForm}
+            style={{
+              padding: "12px 16px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#6b7280",
+              color: "white",
+              cursor: "pointer"
+            }}
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
+
+      <h3>Pesquisar</h3>
+
+      <input
+        placeholder="Pesquisar cliente..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={inputStyle}
+      />
 
       <h3>Lista</h3>
-      <ul>
-        {clients.map(c => (
-          <li key={c.id}>
-            {c.name} - {c.nif} - {c.address || "Sem morada"}
+      <ul style={{ paddingLeft: "18px" }}>
+        {filteredClients.map((c) => (
+          <li key={c.id} style={{ marginBottom: "18px" }}>
+            <strong>{c.name}</strong>
+            <br />
+            NIF: {c.nif || "-"}
+            <br />
+            Telefone: {c.phone || "-"}
+            <br />
+            Email: {c.email || "-"}
+            <br />
+            Morada: {c.address || "Sem morada"}
+            <br />
+            <button
+              onClick={() => editClient(c)}
+              style={{
+                marginTop: "8px",
+                padding: "8px 12px",
+                border: "none",
+                borderRadius: "8px",
+                background: "#f59e0b",
+                color: "white",
+                cursor: "pointer"
+              }}
+            >
+              Editar
+            </button>
           </li>
         ))}
       </ul>
