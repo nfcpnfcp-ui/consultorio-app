@@ -14,6 +14,7 @@ export default function Payments() {
   const [file, setFile] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
+  const [search, setSearch] = useState("")
 
   const loadSessions = async () => {
     const { data, error } = await supabase
@@ -169,6 +170,25 @@ export default function Payments() {
     }
   }
 
+  const filteredPayments = payments.filter((p) => {
+    const text = search.toLowerCase()
+    const clientName = p.sessions?.clients?.name?.toLowerCase() || ""
+    const status = p.status?.toLowerCase() || ""
+    const method = p.payment_method?.toLowerCase() || ""
+    const amount = String(p.amount || "").toLowerCase()
+    const dateText = p.sessions?.date
+      ? new Date(p.sessions.date).toLocaleString().toLowerCase()
+      : ""
+
+    return (
+      clientName.includes(text) ||
+      status.includes(text) ||
+      method.includes(text) ||
+      amount.includes(text) ||
+      dateText.includes(text)
+    )
+  })
+
   const inputStyle = {
     width: "100%",
     padding: "10px",
@@ -270,9 +290,17 @@ export default function Payments() {
         )}
       </div>
 
+      <h3>Pesquisar</h3>
+      <input
+        placeholder="Pesquisar por cliente, valor, data, estado ou método..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={inputStyle}
+      />
+
       <h3>Lista</h3>
       <ul style={{ paddingLeft: "18px" }}>
-        {payments.map((p) => (
+        {filteredPayments.map((p) => (
           <li key={p.id} style={{ marginBottom: "18px" }}>
             <strong>{p.sessions?.clients?.name}</strong>
             <br />
@@ -282,6 +310,12 @@ export default function Payments() {
             <br />
             Método: {p.payment_method || "-"}
             <br />
+            {p.sessions?.date && (
+              <>
+                Data: {new Date(p.sessions.date).toLocaleString()}
+                <br />
+              </>
+            )}
             <div style={{ display: "flex", gap: "10px", marginTop: "8px", flexWrap: "wrap" }}>
               <button
                 onClick={() => editPayment(p)}

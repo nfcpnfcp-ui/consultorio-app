@@ -13,6 +13,7 @@ export default function Sessions() {
   const [sessions, setSessions] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
+  const [search, setSearch] = useState("")
 
   const loadClients = async () => {
     const { data, error } = await supabase
@@ -119,6 +120,21 @@ export default function Sessions() {
     }
   }
 
+  const filteredSessions = sessions.filter((s) => {
+    const text = search.toLowerCase()
+    const clientName = s.clients?.name?.toLowerCase() || ""
+    const type = s.type?.toLowerCase() || ""
+    const status = s.status?.toLowerCase() || ""
+    const dateText = s.date ? new Date(s.date).toLocaleString().toLowerCase() : ""
+
+    return (
+      clientName.includes(text) ||
+      type.includes(text) ||
+      status.includes(text) ||
+      dateText.includes(text)
+    )
+  })
+
   const inputStyle = {
     width: "100%",
     padding: "10px",
@@ -211,9 +227,17 @@ export default function Sessions() {
         )}
       </div>
 
+      <h3>Pesquisar</h3>
+      <input
+        placeholder="Pesquisar por cliente, data, tipo ou estado..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={inputStyle}
+      />
+
       <h3>Lista</h3>
       <ul style={{ paddingLeft: "18px" }}>
-        {sessions.map((s) => (
+        {filteredSessions.map((s) => (
           <li key={s.id} style={{ marginBottom: "18px" }}>
             <strong>{s.clients?.name}</strong>
             <br />
