@@ -1,40 +1,50 @@
 import { useState } from "react"
 import { supabase } from "./supabaseClient"
 
-export default function Login() {
+function Login({ setIsLoggedIn }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
-  const login = async () => {
+  const handleLogin = async () => {
+    setError("")
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password,
     })
 
-    if (error) alert(error.message)
-    else alert("Login com sucesso!")
+    if (error) {
+      setError(error.message)
+    } else {
+      setIsLoggedIn(true)
+    }
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 40 }}>
       <h2>Login</h2>
 
       <input
         placeholder="Email"
-        onChange={e => setEmail(e.target.value)}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
       />
-
       <br /><br />
 
       <input
         type="password"
         placeholder="Password"
-        onChange={e => setPassword(e.target.value)}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
-
       <br /><br />
 
-      <button onClick={login}>Entrar</button>
+      <button onClick={handleLogin}>Entrar</button>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   )
 }
+
+export default Login
