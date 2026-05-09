@@ -12,15 +12,22 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setSession(data.session)
+      })
+      .catch(() => {
+        setSession(null)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      setLoading(false)
     })
 
     return () => {
@@ -29,11 +36,26 @@ function App() {
   }, [])
 
   if (loading) {
-    return <div style={{ padding: "40px" }}>A carregar...</div>
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "Arial, sans-serif",
+          background: "#f3f4f6",
+          fontSize: "20px",
+          fontWeight: "600"
+        }}
+      >
+        A carregar...
+      </div>
+    )
   }
 
   if (!session) {
-    return <Login setIsLoggedIn={() => {}} />
+    return <Login />
   }
 
   const menuButtonStyle = (active) => ({
