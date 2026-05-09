@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "./supabaseClient"
 import {
   BarChart,
@@ -62,33 +62,29 @@ export default function Dashboard() {
 
   const previousMonth = getPreviousMonth(month)
 
-  const filteredSessions = useMemo(() => {
-    return sessions.filter((s) => filterByMonth(s.date))
-  }, [sessions, month])
+  const filteredSessions = sessions.filter((s) =>
+    filterByMonth(s.date)
+  )
 
-  const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
-      const sessionDate = p.sessions?.date
-      if (!sessionDate) return false
-      return filterByMonth(sessionDate)
-    })
-  }, [payments, month])
+  const filteredPayments = payments.filter((p) => {
+    const sessionDate = p.sessions?.date
 
-  const previousMonthSessions = useMemo(() => {
-    if (!previousMonth) return []
-    return sessions.filter((s) => getMonthKey(s.date) === previousMonth)
-  }, [sessions, previousMonth])
+    if (!sessionDate) return false
 
-  const previousMonthPayments = useMemo(() => {
-    if (!previousMonth) return []
+    return filterByMonth(sessionDate)
+  })
 
-    return payments.filter((p) => {
-      const sessionDate = p.sessions?.date
-      if (!sessionDate) return false
+  const previousMonthSessions = sessions.filter(
+    (s) => getMonthKey(s.date) === previousMonth
+  )
 
-      return getMonthKey(sessionDate) === previousMonth
-    })
-  }, [payments, previousMonth])
+  const previousMonthPayments = payments.filter((p) => {
+    const sessionDate = p.sessions?.date
+
+    if (!sessionDate) return false
+
+    return getMonthKey(sessionDate) === previousMonth
+  })
 
   const totalSessions = filteredSessions.length
 
@@ -400,14 +396,14 @@ export default function Dashboard() {
         )}
 
         {statCard(
-          "Em leis",
+          "Em dívida",
           `${totalUnpaid.toFixed(2)} €`,
           "Pagamentos por regularizar",
           "#ef4444"
         )}
 
         {statCard(
-          "por função",
+          "Média",
           `${averagePerPaidSession.toFixed(2)} €`,
           "Média dos pagamentos recebidos",
           "#8b5cf6"
@@ -424,7 +420,7 @@ export default function Dashboard() {
         }}
       >
         <div style={chartCardStyle}>
-          <h3>Totalmente por categoria</h3>
+          <h3>Total por categoria</h3>
 
           <ResponsiveContainer
             width="100%"
@@ -436,6 +432,7 @@ export default function Dashboard() {
               <YAxis />
               <Tooltip />
               <Legend />
+
               <Bar
                 dataKey="value"
                 fill="#3b82f6"
